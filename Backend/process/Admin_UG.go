@@ -9,6 +9,7 @@ import (
 	"path"
 	"strconv"
 	"strings"
+	"time"
 	"unsafe"
 )
 
@@ -21,6 +22,7 @@ type User struct {
 }
 
 var RUTAIMAGEN string = ""
+var RUTASB string = ""
 var Logeado User
 var estado bool = false
 
@@ -398,9 +400,10 @@ func (a Admin_UG) RMUSER(usuario string) string {
 }
 
 func (a Admin_UG) REP(name string, paths string, id string, rute string) string {
-
+	var particion Partition
 	pathdisco := ""
-	_, err := admindisk.EncontrarParticion(id, &pathdisco)
+	particion, err := admindisk.EncontrarParticion(id, &pathdisco)
+	fmt.Println(particion.PART_fit, " ", particion.PART_name, " ", particion.PART_size, " ", particion.PART_start, " ", particion.PART_status, " ", particion.PART_type)
 	if err != nil {
 		return "~~~ ERROR [REP] PARA EL REPORTE NECESITA UN DISCO MONTADO"
 	}
@@ -408,6 +411,8 @@ func (a Admin_UG) REP(name string, paths string, id string, rute string) string 
 	if name == "disk" {
 		DISK(paths, pathdisco)
 	} else if name == "sb" {
+		Superbloque(paths, pathdisco, particion)
+	} else {
 		return "~~~ ERROR [REP] NO EXISTE ESE TIPO DE REPORTE"
 	}
 
@@ -420,7 +425,7 @@ func DISK(ruta string, paths string) {
 	imprimir.Seek(0, 0)
 	binary.Read(imprimir, binary.LittleEndian, &mbr)
 
-	carpetas := strings.Replace(paths, path.Base(ruta), "", -1)
+	carpetas := strings.Replace(ruta, path.Base(ruta), "", -1)
 	os.MkdirAll(carpetas, 0755)
 	indicePunto := strings.LastIndex(ruta, ".")
 	rutaSinExtension := ruta[:indicePunto]
@@ -522,6 +527,50 @@ func DISK(ruta string, paths string) {
 	exec.Command("dot", "-Tpdf", "-o", rutaImagen, rutaSinExtension).Run()
 
 }
+func Superbloque(ruta string, pathdisc string, encontrado Partition) {
+	var sup Superblock
+	imprimir, _ := os.OpenFile(pathdisc, os.O_RDWR, 0666)
+	defer imprimir.Close()
+	imprimir.Seek(int64(encontrado.PART_start), 0)
+	binary.Read(imprimir, binary.LittleEndian, &sup)
+	indicePunto := strings.LastIndex(ruta, ".")
+	rutaDot := ruta[:indicePunto]
+	rutaDot += ".dot"
+	rutaImagen := ruta[:indicePunto]
+	rutaImagen += ".pdf"
+	carpetas := strings.Replace(ruta, path.Base(ruta), "", -1)
+	os.MkdirAll(carpetas, 0755)
+
+	archivo, _ := os.Create(rutaDot)
+	defer archivo.Close()
+	fmt.Fprintf(archivo, "digraph G {\n")
+	fmt.Fprintf(archivo, "node [shape=plaintext]\n")
+	fmt.Fprintf(archivo, "   graph [rankdir = LR bgcolor = white style=filled fontname = \"Courier New\"]; \n")
+	fmt.Fprintf(archivo, "   Tabla[fontname = \"Courier New\" label=<<table border=\"2\" cellspacing=\"1\" cellborder = \"2\" width = \"300\" bgcolor = \"black\"> \n")
+	fmt.Fprintf(archivo, "       <tr>  <td bgcolor=\"orange\" COLSPAN =\"2\" width = \"300\" height = \"50\"><b> SUPER_BLOQUE</b> </td>  </tr> \n")
+	fmt.Fprintf(archivo, "       <tr>  <td bgcolor=\"skyblue\"> filesystem_type  </td><td bgcolor=\"white\"> %s </td></tr> \n", strconv.Itoa(int(sup.S_filesystem_type)))
+	fmt.Fprintf(archivo, "       <tr><td bgcolor=\"skyblue\"> Total inodos  </td><td bgcolor=\"white\"> %s  </td></tr> \n", strconv.Itoa(int(sup.S_inodes_count)))
+	fmt.Fprintf(archivo, "       <tr><td bgcolor=\"skyblue\"> Total bloques  </td><td bgcolor=\"white\"> %s </td></tr> \n", strconv.Itoa(int(sup.S_blocks_count)))
+	fmt.Fprintf(archivo, "       <tr><td bgcolor=\"skyblue\"> Total bloques Libres  </td><td bgcolor=\"white\"> %s </td></tr> \n", strconv.Itoa(int(sup.S_free_blocks_count)))
+	fmt.Fprintf(archivo, "       <tr><td bgcolor=\"skyblue\"> Total inodos Libres </td><td bgcolor=\"white\"> %s </td></tr> \n", strconv.Itoa(int(sup.S_free_inodes_count)))
+	fmt.Fprintf(archivo, "       <tr><td bgcolor=\"skyblue\"> Ultima Fecha Montado </td><td bgcolor=\"white\">  %s </td></tr> \n", time.Unix(sup.S_mtime, 0).Format("Jan 02, 2006 15:04:05"))
+	fmt.Fprintf(archivo, "       <tr><td bgcolor=\"skyblue\"> Ultima Fecha Desmontado </td><td bgcolor=\"white\"> %s  </td></tr> \n", time.Unix(sup.S_umtime, 0).Format("Jan 02, 2006 15:04:05"))
+	fmt.Fprintf(archivo, "       <tr><td bgcolor=\"skyblue\"> Desmontado  </td><td bgcolor=\"white\"> %s </td></tr> \n", strconv.Itoa(int(sup.S_mnt_count)))
+	fmt.Fprintf(archivo, "       <tr><td bgcolor=\"skyblue\"> Magic  </td><td bgcolor=\"white\"> %s </td></tr> \n", strconv.Itoa(int(sup.S_magic)))
+	fmt.Fprintf(archivo, "       <tr><td bgcolor=\"skyblue\"> Tamano Inodo  </td><td bgcolor=\"white\"> %s </td></tr> \n", strconv.Itoa(int(sup.S_inode_size)))
+	fmt.Fprintf(archivo, "       <tr><td bgcolor=\"skyblue\"> Tamano Bloque  </td><td bgcolor=\"white\"> %s </td></tr> \n", strconv.Itoa(int(sup.S_block_size)))
+	fmt.Fprintf(archivo, "       <tr><td bgcolor=\"skyblue\"> Primer Inodo Libre  </td><td bgcolor=\"white\"> %s </td></tr> \n", strconv.Itoa(int(sup.S_first_ino)))
+	fmt.Fprintf(archivo, "       <tr><td bgcolor=\"skyblue\"> Primer Bloque Libre  </td><td bgcolor=\"white\"> %s </td></tr> \n", strconv.Itoa(int(sup.S_first_blo)))
+	fmt.Fprintf(archivo, "       <tr><td bgcolor=\"skyblue\"> Inicio BM Inodo  </td><td bgcolor=\"white\"> %s </td></tr> \n", strconv.Itoa(int(sup.S_bm_inode_start)))
+	fmt.Fprintf(archivo, "       <tr><td bgcolor=\"skyblue\"> Inicio BM Bloque  </td><td bgcolor=\"white\">  %s </td></tr> \n", strconv.Itoa(int(sup.S_bm_block_start)))
+	fmt.Fprintf(archivo, "       <tr><td bgcolor=\"skyblue\"> Inicio Tabla Inodo  </td><td bgcolor=\"white\"> %s </td></tr> \n", strconv.Itoa(int(sup.S_inode_start)))
+	fmt.Fprintf(archivo, "       <tr><td bgcolor=\"skyblue\"> Inicio Tabla Bloques  </td><td bgcolor=\"white\"> % s </td></tr> \n", strconv.Itoa(int(sup.S_block_start)))
+	fmt.Fprintf(archivo, "   </table>>]; \n")
+	fmt.Fprintf(archivo, "   label = \"Reporte SB By: Kemel Ruano\"; \n")
+	fmt.Fprintf(archivo, "}")
+	RUTASB = rutaImagen
+	exec.Command("dot", "-Tpdf", "-o", rutaImagen, rutaDot).Run()
+}
 
 func (a Admin_UG) ViewsReporte(user string, pwd string, ids string) string {
 
@@ -538,4 +587,8 @@ func (a Admin_UG) ViewsReporte(user string, pwd string, ids string) string {
 
 func (a Admin_UG) DRUTE() string {
 	return RUTAIMAGEN
+}
+
+func (a Admin_UG) SBRUTE() string {
+	return RUTASB
 }

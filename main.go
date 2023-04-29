@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"proyecto2/analizadores"
+	"proyecto2/Backend/analizadores"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -76,6 +76,28 @@ func main() {
 
 	router.HandleFunc("/disk", func(w http.ResponseWriter, r *http.Request) {
 		pdfFile, err := os.Open(analizadores.LD())
+		if err != nil {
+			http.Error(w, "Archivo no encontrado", 404)
+			return
+		}
+		defer pdfFile.Close()
+		stat, err := pdfFile.Stat()
+		if err != nil {
+			http.Error(w, "Error al obtener información del archivo", 500)
+			return
+		}
+		fileSize := strconv.FormatInt(stat.Size(), 10)
+
+		w.Header().Set("Content-Type", "application/pdf")
+		w.Header().Set("Content-Disposition", "inline; filename=archivo.pdf")
+		w.Header().Set("Content-Length", fileSize)
+
+		io.Copy(w, pdfFile)
+
+	}).Methods("POST")
+
+	router.HandleFunc("/superbloque", func(w http.ResponseWriter, r *http.Request) {
+		pdfFile, err := os.Open(analizadores.LSB())
 		if err != nil {
 			http.Error(w, "Archivo no encontrado", 404)
 			return

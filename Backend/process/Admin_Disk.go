@@ -674,7 +674,6 @@ func (d AdminDisk) Format_ext2(superbloque Superblock, particion Partition, bloq
 	defer leer.Close()
 	leer.Seek(int64(particion.PART_start), 0)
 	binary.Write(leer, binary.LittleEndian, &superbloque)
-
 	leer.Seek(int64(superbloque.S_bm_inode_start), 0)
 	for i := 0; i < bloques; i++ {
 		binary.Write(leer, binary.LittleEndian, &tmp)
@@ -756,13 +755,6 @@ func (d AdminDisk) Format_ext2(superbloque Superblock, particion Partition, bloq
 	binary.Write(bfiles, binary.LittleEndian, &bloke)
 	binary.Write(bfiles, binary.LittleEndian, &fileb)
 
-	for i := 0; i < len(List_mount); i++ {
-		for j := 0; j < len(List_mount[i].ids); j++ {
-			if List_mount[i].ids[j].Id == ids {
-				List_mount[i].ids[j].Mkfs = true
-			}
-		}
-	}
 }
 
 func (d AdminDisk) EncontrarParticion(id string, p *string) (Partition, error) {

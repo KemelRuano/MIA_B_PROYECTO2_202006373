@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"proyecto2/process"
+	"proyecto2/Backend/process"
 	"strings"
 )
 
@@ -394,4 +394,7 @@ func Acceder(user string, pass string, ids string) string {
 
 func LD() string {
 	return adminug.DRUTE()
+}
+func LSB() string {
+	return adminug.SBRUTE()
 }
