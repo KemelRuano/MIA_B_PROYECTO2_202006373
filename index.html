@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="codemirror-2.35/lib/codemirror.css">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://getbootstrap.com/docs/5.3/assets/css/docs.css" rel="stylesheet">
+	<title> PROYECTO2 MIA</title>
+</head>
+<body style="background: greenyellow;">
+    <div  id = "div1" class="input-group flex-nowrap">
+        <span class="input-group-text" style="background-color: transparent; border: none;"> <img src="images/1.png" style="max-width: 50px;"> </img></span>
+        <input type="text" class="form-control" style="border: 5px solid black; font: bold 110% monospace;" placeholder="Ingrese comando" id="input1">
+    </div>
+    <div class="container" >
+        <input type="file"  class="upload-box" id="archivo"/>
+    </div>
+
+    <button type="button" class="btn btn-warning" style="width: 160px; height: 50px;  position: absolute; top: 9%;  left:85%; border:5px solid black; font: bold 110% monospace;" onclick="getInpunt1()"> 
+         <img src="images/2.png" style="max-width: 30px;"> 
+         EJECUTAR
+    </button>
+    <button type="button" class="btn btn-warning" style="width: 50px; height: 51px;  position: absolute; top: 9%;  left:57%; border:5px solid black; font: bold 110% monospace;" onclick="getInpunt2()"> 
+        🧹
+   </button>
+
+    <script src="codemirror-2.35/lib/codemirror.js"></script>
+    <script src="codemirror-2.35/mode/javascript/javascript.js"></script>
+    <link rel="stylesheet" href="codemirror-2.35/theme/monokai.css">
+
+    <div  style="position: absolute; width: 900px; height: 250px; top: 20%; left: 10%; background: #000000;  ">
+        <div id="codigo" ></div>
+    </div>
+    
+   
+    <textarea name="mostrar" id="mostrarr" cols="30" rows="10" style="width: 600px; height: 100px; position: absolute; top:59%; left: 23%; background: #000000; color: white; font: bold 100% monospace;" disabled></textarea>
+
+
+	
+
+    <button class="btn btn-warning" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasExample" aria-controls="offcanvasExample" style="width: 100px; height:40px;  position: absolute; top: 2%;  left:2%; border:5px solid black; font: bold 110% monospace;"> 
+        LOGIN
+   </button>
+
+    <div style="background: greenyellow;" class="offcanvas offcanvas-start" tabindex="-1" id="offcanvasExample" aria-labelledby="offcanvasExampleLabel">
+		<div class="offcanvas-header">
+		  <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+		</div>
+		<div class="offcanvas-body">
+		  <div style="font: bold 110% monospace;">
+			 INGRESE SUS CREDENCIALES PARA INICIAR SESION
+		  </div>
+		  <div class="dropdown mt-3" style="background-color: rgba(165, 237, 10, 0.5);  width: 350px; height: 400px;">
+                <input type="text" class="form-control" style="border: 5px solid black; font: bold 110% monospace; position: absolute; top: 10%;" placeholder="ID" id="id">
+                <input type="text" class="form-control" style="border: 5px solid black; font: bold 110% monospace; position: absolute; top: 22%;" placeholder="USER" id="user">
+                <input type="text" class="form-control" style="border: 5px solid black; font: bold 110% monospace; position: absolute; top: 35%;" placeholder="PASSWORD" id="pass"> 
+			<button  type="button" class ="bt btn-warning" style="width: 200px; height:40px;  position: absolute; top: 60%;  left:20%; border:5px solid black; font: bold 110% monospace; background: yellow;" onclick="Logeado()">
+			  INICIAR SESION 
+			</button>
+		  </div>
+		</div>
+	  </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ENjdO4Dr2bkBIFxQpeoTz1HIcje39Wm4jDKdf19U8gI4ddQ3GYNS7NTKfAdVQSZe" crossorigin="anonymous"></script>
+	<script>
+        var Proceso = ""
+		var editor = CodeMirror.fromTextArea(document.getElementById("codigo"), {
+			lineNumbers: true,
+			mode: "javascript",
+			theme: "monokai",
+            readOnly: true
+		});
+        editor.setSize("850px", "230px");
+        var editorWrapper = editor.getWrapperElement();
+        editorWrapper.style.position = "absolute";
+        editorWrapper.style.top = "10px";
+        editorWrapper.style.left = "20px";
+        function getInpunt2(){
+            document.getElementById("input1").value = "";
+        }
+        
+        function getInpunt1(){
+            var input = document.getElementById("input1");
+            var objecto = {
+                'comando': input.value
+            }
+
+            Proceso+= input.value + "\n";
+            editor.setValue(Proceso);
+            fetch('http://localhost:8080/Comands', {
+                method: 'POST',
+                body: JSON.stringify(objecto),
+                headers:{
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',}})
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("mostrarr").value = data.comando;
+                console.log('Success:', data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("Ocurrio un error, ver la consola");
+            });
+
+   
+        }
+
+        function Logeado(){
+            var id1 = document.getElementById("id");
+            var user1 = document.getElementById("user");
+            var pass1 = document.getElementById("pass");
+            var objecto = {
+                'usuario': user1.value,
+                'password': pass1.value,
+                'id': id1.value
+            }
+            fetch('http://localhost:8080/Login', {
+                method: 'POST',
+                body: JSON.stringify(objecto),
+                headers:{
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',}})
+            .then(response => response.json())
+            .then(data => {
+                alert(data.comando);
+                if (data.comando == "BIENVENIDO USUARIO"){
+                        window.location.href = "Proceso.html";
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("Ocurrio un error, ver la consola");
+            });
+
+        }
+	</script>
+
+    
+    
+    <style>
+        
+         #div1 {
+         width: 600px;
+         height: 50px;
+         position: absolute;
+         top: 10%;
+         left: 20%;
+         transform: translate(-20%, -10%);
+         }
+        
+         .container {
+            top: 13%;
+            left: 105%;
+            transform: translate(-50%,-50%);
+            position: absolute;
+         }
+        .upload-box {
+            font: bold 110% monospace;
+            font-size: 10px;
+            background: rgb(239, 188, 4);
+            border-radius: 80px;
+            width: 260px;
+            outline: none;
+        }
+        ::-webkit-file-upload-button{
+            font: bold 100% monospace;
+            color: white;
+            background: #000000;
+            padding: 20px;
+            border: none;
+            border-radius: 80px;
+            outline: none;
+        }
+       
+        
+     </style>
+	
+   
+</body>
+</html>
+
+
+

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Mi primera página HTML</title>
+</head>
+<body style="background: greenyellow;">
+    <button  type="button" class ="bt btn-warning" style="width: 150px; height:40px;  position: absolute; top: 5%;  left:20%; border:5px solid black; font: bold 110% monospace; background: yellow;" onclick="viewTREE()">
+        TREE
+    </button>
+    <button  type="button" class ="bt btn-warning" style="width: 150px; height:40px;  position: absolute; top: 5%;  left:31%; border:5px solid black; font: bold 110% monospace; background: yellow;" onclick="">
+        Superblock
+    </button>
+    <button  type="button" class ="bt btn-warning" style="width: 150px; height:40px;  position: absolute; top: 5%;  left:42%; border:5px solid black; font: bold 110% monospace; background: yellow;" onclick="viewDISK()">
+        Disk
+    </button>
+    <button  type="button" class ="bt btn-warning" style="width: 150px; height:40px;  position: absolute; top: 5%;  left:53%; border:5px solid black; font: bold 110% monospace; background: yellow;" onclick="">
+        FILE
+    </button>
+    <div id="contendor" style="background: black; width: 85%; height: 500px; position: absolute; top: 15%; left: 5%; ">      
+   
+    </div>
+    <script>
+        function viewDISK(){
+            var diskpath = ""
+            fetch('http://localhost:8080/disk', {
+                method: 'POST',
+                headers:{
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*',}})
+                .then(response => {
+                    if (!response.ok) {
+                    throw new Error('Error al obtener el archivo PDF');
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    const url = URL.createObjectURL(blob);
+                    const iframe = document.createElement('iframe');
+                    iframe.src = url;
+                    iframe.width = '100%';
+                    iframe.height = '100%';
+                    const div = document.getElementById('contendor');
+                    div.appendChild(iframe);
+                    URL.revokeObjectURL(url);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert("Ocurrio un error, ver la consola");
+                });
+                
+            
+        }
+
+    </script>
+</body>
+</html>
