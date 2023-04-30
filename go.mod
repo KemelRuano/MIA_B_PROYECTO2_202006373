@@ -1,4 +1,4 @@
-module proyecto2
+module MIA_B_PROYECTO2_202006373
 
 go 1.20
 

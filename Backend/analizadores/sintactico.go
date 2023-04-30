@@ -1,11 +1,11 @@
 package analizadores
 
 import (
+	"MIA_B_PROYECTO2_202006373/Backend/process"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
-	"proyecto2/Backend/process"
 	"strings"
 )
 

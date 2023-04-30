@@ -1,11 +1,11 @@
 package main
 
 import (
+	"MIA_B_PROYECTO2_202006373/Backend/analizadores"
 	"encoding/json"
 	"io"
 	"net/http"
 	"os"
-	"proyecto2/Backend/analizadores"
 	"strconv"
 
 	"github.com/gorilla/mux"
