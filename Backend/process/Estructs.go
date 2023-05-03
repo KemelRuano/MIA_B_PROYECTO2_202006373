@@ -93,7 +93,7 @@ func NewInodes() Inodes {
 		I_ctime: 0,
 		I_mtime: 0,
 		I_block: [16]int32{-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-		I_type:  '-',
+		I_type:  45,
 		I_perm:  -1,
 	}
 }

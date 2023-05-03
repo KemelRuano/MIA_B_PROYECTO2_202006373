@@ -23,6 +23,8 @@ type User struct {
 
 var RUTAIMAGEN string = ""
 var RUTASB string = ""
+var RUTATREE string = ""
+var RUTAFILES string = ""
 var Logeado User
 var estado bool = false
 
@@ -114,6 +116,9 @@ func (a Admin_UG) Logout() string {
 }
 
 func (a Admin_UG) MKGRP(name string) string {
+	if len(name) > 10 {
+		return "~~~ ERROR [MKGRP] EL NOMBRE DEL GRUPO NO PUEDE TENER MAS DE 10 CARACTERES"
+	}
 	Superblock := NewSuperblock()
 	var fileblock Fileblock
 	particion := NewPartition()
@@ -263,6 +268,12 @@ func (a Admin_UG) RMGRP(name string) string {
 }
 
 func (a Admin_UG) MKUSR(user string, pwd string, grp string) string {
+	if len(user) > 10 {
+		return "~~~ ERROR [MKUSR] EL NOMBRE DE USUARIO NO PUEDE TENER MAS DE 10 CARACTERES"
+	}
+	if len(pwd) > 10 {
+		return "~~~ ERROR [MKUSR] LA CONTRASEÑA NO PUEDE TENER MAS DE 10 CARACTERES"
+	}
 	Superblock := NewSuperblock()
 	var fileblock Fileblock
 	particion := NewPartition()
@@ -282,6 +293,7 @@ func (a Admin_UG) MKUSR(user string, pwd string, grp string) string {
 	readFiles.Seek(int64(Superblock.S_block_start)+int64(unsafe.Sizeof(Folderblock{})), 0)
 	binary.Read(readFiles, binary.LittleEndian, &fileblock)
 	archivo := strings.TrimRight(string(fileblock.B_content[:]), "\x00")
+
 	list_users := a.extraer(archivo, 10)
 	var cont_user int = 0
 	var ya_esta bool = false
@@ -318,19 +330,23 @@ func (a Admin_UG) MKUSR(user string, pwd string, grp string) string {
 
 		return "~~~ ERROR [MKUSR] EL GRUPO NO EXISTE"
 	}
-	if newecontrado {
-		var bytes [64]byte
-		copy(bytes[:], []byte(newarchivo))
-		fileblock.B_content = bytes
-		fmt.Println("NEW ARCHIVO: ", string(fileblock.B_content[:]))
-		readFiles.Seek(int64(Superblock.S_block_start)+int64(unsafe.Sizeof(Folderblock{})), 0)
-		binary.Write(readFiles, binary.LittleEndian, &fileblock)
-		return "██████ [MKUSR] --- USUARIO CREADO CON EXITO ██████"
-	}
 
-	archivo += strconv.Itoa(cont_user) + ",U," + grp + "," + user + "," + pwd + "\n"
+	var Contenido string = ""
+	if newecontrado {
+		Contenido = newarchivo
+	} else {
+		archivo += strconv.Itoa(cont_user) + ",U," + grp + "," + user + "," + pwd + "\n"
+		Contenido = archivo
+	}
+	fmt.Println("byte es :", len(Contenido))
+	if len(Contenido) > 64 {
+
+		for i := 0; i < len(Contenido); i++ {
+
+		}
+	}
 	var bytes [64]byte
-	copy(bytes[:], []byte(archivo))
+	copy(bytes[:], []byte(Contenido))
 	fileblock.B_content = bytes
 	fmt.Println("NEW ARCHIVO: ", string(fileblock.B_content[:]))
 	readFiles.Seek(int64(Superblock.S_block_start)+int64(unsafe.Sizeof(Folderblock{})), 0)
@@ -412,6 +428,10 @@ func (a Admin_UG) REP(name string, paths string, id string, rute string) string 
 		DISK(paths, pathdisco)
 	} else if name == "sb" {
 		Superbloque(paths, pathdisco, particion)
+	} else if name == "tree" {
+		Tree(paths, pathdisco, particion)
+	} else if name == "file" {
+		FILE(paths, pathdisco, particion, rute)
 	} else {
 		return "~~~ ERROR [REP] NO EXISTE ESE TIPO DE REPORTE"
 	}
@@ -572,6 +592,209 @@ func Superbloque(ruta string, pathdisc string, encontrado Partition) {
 	exec.Command("dot", "-Tpdf", "-o", rutaImagen, rutaDot).Run()
 }
 
+func Tree(ruta string, paths string, partition Partition) {
+	var sup Superblock
+	var inode Inodes = NewInodes()
+	imprimir, _ := os.OpenFile(paths, os.O_RDWR, 0666)
+	defer imprimir.Close()
+	imprimir.Seek(int64(partition.PART_start), 0)
+	binary.Read(imprimir, binary.LittleEndian, &sup)
+
+	imprimir.Seek(int64(sup.S_bm_inode_start), 0)
+	bmInodo := make([]byte, sup.S_inodes_count)
+	binary.Read(imprimir, binary.LittleEndian, &bmInodo)
+
+	imprimir.Seek(int64(sup.S_bm_block_start), 0)
+	bmBloque := make([]byte, sup.S_blocks_count)
+	binary.Read(imprimir, binary.LittleEndian, &bmBloque)
+
+	imprimir.Seek(int64(sup.S_inode_start), 0)
+	binary.Read(imprimir, binary.LittleEndian, &inode)
+	var freeI int = Inodosiguiente(sup, paths)
+	fmt.Println("freeI: ", freeI)
+	indicePunto := strings.LastIndex(ruta, ".")
+	rutaDot := ruta[:indicePunto]
+	rutaDot += ".dot"
+	rutaImagen := ruta[:indicePunto]
+	rutaImagen += ".pdf"
+	carpetas := strings.Replace(ruta, path.Base(ruta), "", -1)
+	os.MkdirAll(carpetas, 0755)
+
+	archivo, _ := os.Create(rutaDot)
+	defer archivo.Close()
+	fmt.Fprintf(archivo, "digraph G {\n")
+	fmt.Fprintf(archivo, "node [shape = plaintext];\n")
+	fmt.Fprintf(archivo, "   graph [rankdir = LR bgcolor = white style=filled]; \n")
+	for i := 0; i < freeI; i++ {
+		fmt.Fprintf(archivo, "inode%s [label=<<table border=\"2\" cellspacing=\"2\">\n", strconv.Itoa(i))
+		fmt.Fprintf(archivo, "       <tr> \n ")
+		fmt.Fprintf(archivo, " <td bgcolor=\"red\" COLSPAN =\"2\"><b> Inodo %s </b> </td> \n", strconv.Itoa(i))
+		fmt.Fprintf(archivo, "</tr>\n")
+		fmt.Fprintf(archivo, "<tr>\n")
+		fmt.Fprint(archivo, "<td bgcolor=\"skyblue\"> UID:     </td>\n")
+		fmt.Fprintf(archivo, "<td> %s </td>\n", strconv.Itoa(int(inode.I_uid)))
+		fmt.Fprintf(archivo, "</tr>\n")
+		fmt.Fprintf(archivo, "<tr>\n")
+		fmt.Fprint(archivo, "<td bgcolor=\"skyblue\"> GID:     </td>\n")
+		fmt.Fprintf(archivo, "<td> %s </td>\n", strconv.Itoa(int(inode.I_gid)))
+		fmt.Fprintf(archivo, "</tr>\n")
+		fmt.Fprintf(archivo, "<tr>\n")
+		fmt.Fprint(archivo, "<td bgcolor=\"skyblue\"> TAMANO:     </td>\n")
+		fmt.Fprintf(archivo, "<td> %s </td>\n", strconv.Itoa(int(inode.I_size)))
+		fmt.Fprintf(archivo, "</tr>\n")
+		fmt.Fprintf(archivo, "<tr>\n")
+		fmt.Fprint(archivo, "<td bgcolor=\"skyblue\"> TIPO:     </td>\n")
+		fmt.Fprintf(archivo, "<td> %s </td>\n", string(inode.I_type))
+		fmt.Fprintf(archivo, "</tr>\n")
+		fmt.Fprintf(archivo, "<tr>\n")
+		fmt.Fprint(archivo, "<td bgcolor=\"skyblue\"> TIME_A:     </td>\n")
+		fmt.Fprintf(archivo, "<td> %s </td>\n", time.Unix(inode.I_atime, 0).Format("Jan 02, 2006 15:04:05"))
+		fmt.Fprintf(archivo, "</tr>\n")
+		fmt.Fprintf(archivo, "<tr>\n")
+		fmt.Fprint(archivo, "<td bgcolor=\"skyblue\"> TIME_C:     </td>\n")
+		fmt.Fprintf(archivo, "<td> %s </td>\n", time.Unix(inode.I_ctime, 0).Format("Jan 02, 2006 15:04:05"))
+		fmt.Fprintf(archivo, "</tr>\n")
+		fmt.Fprintf(archivo, "<tr>\n")
+		fmt.Fprint(archivo, "<td bgcolor=\"skyblue\"> TIME_M:     </td>\n")
+		fmt.Fprintf(archivo, "<td> %s </td>\n", time.Unix(inode.I_mtime, 0).Format("Jan 02, 2006 15:04:05"))
+		fmt.Fprintf(archivo, "</tr>\n")
+		for j := 0; j < 15; j++ {
+			fmt.Fprintf(archivo, "<tr>\n")
+			fmt.Fprintf(archivo, "<td bgcolor=\"skyblue\"> i_block_%s </td> \n", strconv.Itoa(j))
+			fmt.Fprintf(archivo, "<td > %s  </td> \n", strconv.Itoa(int(inode.I_block[j])))
+			fmt.Fprintf(archivo, "</tr>\n")
+		}
+
+		fmt.Fprintf(archivo, "<tr><td bgcolor=\"skyblue\"> PERMISO:    </td><td> %s </td></tr> \n", strconv.Itoa(int(inode.I_perm)))
+		fmt.Fprintf(archivo, "</table>>];\n")
+
+		if inode.I_type == 48 {
+			for j := 0; j < 15; j++ {
+				if inode.I_block[j] != -1 {
+					fmt.Fprintf(archivo, "inode%s -> BLOCK%s; \n", strconv.Itoa(i), strconv.Itoa(int(inode.I_block[j])))
+					var foldertemp Folderblock
+					imprimir.Seek(int64(sup.S_block_start+(int32(unsafe.Sizeof(Folderblock{}))*inode.I_block[j])), 0)
+					binary.Read(imprimir, binary.LittleEndian, &foldertemp)
+					fmt.Fprintf(archivo, "BLOCK%s [label=<<table border=\"2\" cellspacing=\"2\"> \n", strconv.Itoa(int(inode.I_block[j])))
+					fmt.Fprintf(archivo, "<tr><td bgcolor=\"yellow\" COLSPAN =\"2\"><b> Bloque %s </b> </td></tr> \n", strconv.Itoa(int(inode.I_block[j])))
+					for k := 0; k < 4; k++ {
+						var ctmp string
+						ctmp += strings.TrimRight(string(foldertemp.B_content[k].B_name[:]), "\x00")
+						fmt.Fprintf(archivo, "<tr>\n")
+						fmt.Fprintf(archivo, "<td bgcolor=\"skyblue\">  %s </td>\n", ctmp)
+						fmt.Fprintf(archivo, "<td> %s </td>\n", strconv.Itoa(int(foldertemp.B_content[k].B_inodo)))
+						fmt.Fprintf(archivo, "</tr>\n")
+					}
+					fmt.Fprintf(archivo, "</table>>];\n")
+
+					for b := 0; b < 4; b++ {
+						if foldertemp.B_content[b].B_inodo != -1 {
+							es := strings.TrimRight(string(foldertemp.B_content[b].B_name[:]), "\x00")
+							if !(es == "." || es == "..") {
+								fmt.Fprintf(archivo, "BLOCK%s -> inode%s; \n", strconv.Itoa(int(inode.I_block[j])), strconv.Itoa(int(foldertemp.B_content[b].B_inodo)))
+							}
+						}
+					}
+
+				}
+			}
+
+		} else {
+			for j := 0; j < 15; j++ {
+				if inode.I_block[j] != -1 {
+					if i < 12 {
+						fmt.Fprintf(archivo, "inode%s -> BLOCK%s; \n", strconv.Itoa(i), strconv.Itoa(int(inode.I_block[j])))
+						var filetemp Fileblock
+						imprimir.Seek(int64(sup.S_block_start+(int32(unsafe.Sizeof(filetemp))*inode.I_block[j])), 0)
+						binary.Read(imprimir, binary.LittleEndian, &filetemp)
+						fmt.Fprintf(archivo, "BLOCK%s [label = <<table border=\"2\" cellspacing=\"2\"> \n", strconv.Itoa(int(inode.I_block[j])))
+						fmt.Fprintf(archivo, "<tr><td bgcolor=\"yellow\" COLSPAN =\"2\"><b> Bloque %s </b> </td></tr>\n", strconv.Itoa(int(inode.I_block[j])))
+						fmt.Fprintf(archivo, "<tr><td bgcolor=\"skyblue\"> %s </td></tr>\n", strings.TrimRight(string(filetemp.B_content[:]), "\x00"))
+						fmt.Fprintf(archivo, "</table>>];\n")
+					}
+				}
+			}
+		}
+		inode = NewInodes()
+		imprimir.Seek(int64(sup.S_inode_start+(int32(unsafe.Sizeof(inode))*int32(i+1))), 0)
+		binary.Read(imprimir, binary.LittleEndian, &inode)
+	}
+
+	fmt.Fprintf(archivo, "Inode2 [ label = <<table border=\"5\"> \n ")
+	fmt.Fprintf(archivo, " <tr><td bgcolor=\"yellow\" COLSPAN=\"20\">BITMAP BLOQUE</td></tr>")
+	var contes2 int = 0
+	var esI2 bool = false
+	for i := 0; i < int(sup.S_blocks_count); i++ {
+		if contes2 == 0 {
+			fmt.Fprintf(archivo, "<tr> \n")
+		}
+		fmt.Fprintf(archivo, " 	<td bgcolor = \"white\"> %s </td> \n", string(bmBloque[i]))
+		if contes2 == 14 {
+			fmt.Fprintf(archivo, "</tr> \n")
+			contes2 = 0
+			esI2 = true
+		}
+		if esI2 {
+			esI2 = false
+		} else {
+			contes2++
+		}
+	}
+	if contes2 != 0 {
+		fmt.Fprintf(archivo, "</tr> \n")
+	}
+	fmt.Fprintf(archivo, "   </table>>]; \n")
+
+	fmt.Fprintf(archivo, "Inode [ label = <<table border=\"5\"> \n ")
+	fmt.Fprintf(archivo, " <tr><td colspan=\"5\" bgcolor=\"red\" COLSPAN=\"20\">BITMAP INODO</td></tr>")
+	var contes int = 0
+	var esI bool = false
+	for i := 0; i < int(sup.S_inodes_count); i++ {
+		if contes == 0 {
+			fmt.Fprintf(archivo, "<tr> \n")
+		}
+		fmt.Fprintf(archivo, " 	<td bgcolor = \"white\"> %s </td> \n", string(bmInodo[i]))
+		if contes == 14 {
+			fmt.Fprintf(archivo, "</tr> \n")
+			contes = 0
+			esI = true
+		}
+		if esI {
+			esI = false
+		} else {
+			contes++
+		}
+	}
+	if contes != 0 {
+		fmt.Fprintf(archivo, "</tr> \n")
+	}
+	fmt.Fprintf(archivo, "   </table>>]; \n")
+
+	fmt.Fprintf(archivo, "size = \"10,8\"; \n")
+	fmt.Fprintf(archivo, "ranksep=\"6\"; \n")
+	fmt.Fprintf(archivo, "   label = \"Reporte TREE By: Kemel Ruano\"; \n")
+	fmt.Fprintf(archivo, "}\n")
+
+	RUTATREE = rutaImagen
+	exec.Command("dot", "-Tpdf", "-o", rutaImagen, rutaDot).Run()
+
+}
+
+func Inodosiguiente(superbloque Superblock, paths string) int {
+
+	Leer_modificar, _ := os.OpenFile(paths, os.O_RDWR, 0666)
+	defer Leer_modificar.Close()
+	bitMapInodo := make([]byte, superbloque.S_inodes_count)
+	Leer_modificar.Seek(int64(superbloque.S_bm_inode_start), 0)
+	binary.Read(Leer_modificar, binary.LittleEndian, &bitMapInodo)
+	for i := 0; i < int(superbloque.S_inodes_count); i++ {
+		if bitMapInodo[i] == 48 {
+			return i
+		}
+	}
+	return -1
+}
+
 func (a Admin_UG) ViewsReporte(user string, pwd string, ids string) string {
 
 	if Logeado.User != user && Logeado.Password == pwd && Logeado.Id == ids {
@@ -591,4 +814,56 @@ func (a Admin_UG) DRUTE() string {
 
 func (a Admin_UG) SBRUTE() string {
 	return RUTASB
+}
+func (a Admin_UG) FILES2() string {
+	return RUTAFILES
+}
+
+func FILE(paths string, pathdisco string, particion Partition, rute string) {
+	var super Superblock
+	var filetemp Fileblock
+	archivo, _ := os.OpenFile(pathdisco, os.O_RDWR, 0666)
+	defer archivo.Close()
+	archivo.Seek(int64(particion.PART_start), 0)
+	binary.Read(archivo, binary.LittleEndian, &super)
+
+	archivo.Seek(int64(super.S_block_start)+int64(unsafe.Sizeof(Folderblock{})), 0)
+	binary.Read(archivo, binary.LittleEndian, &filetemp)
+
+	carpetas := strings.Replace(paths, path.Base(paths), "", -1)
+	os.MkdirAll(carpetas, 0755)
+
+	archivotmp, _ := os.Create(paths)
+	defer archivotmp.Close()
+	Imprimir := strings.TrimRight(string(filetemp.B_content[:]), "\x00")
+	archivotmp.WriteString(Imprimir)
+	RUTAFILES = paths
+
+}
+
+func (a Admin_UG) TREERUTE() string {
+	return RUTATREE
+}
+
+func (d Admin_UG) Mkdir(paths string, Es_padre bool) {
+	var sup Superblock
+	var inode Inodes
+	var particion Partition
+	if Logeado.User == "" && Logeado.Password == "" {
+		fmt.Println("NO HAY NINGUN USUARIO LOGEADO")
+		return
+	}
+	path_particion := ""
+	particion, _ = admindisk.EncontrarParticion(Logeado.Id, &path_particion)
+	fmt.Println("PARTICION: ", particion.PART_name)
+	fmt.Println("PARTICION: ", particion.PART_start)
+
+	read, _ := os.OpenFile(path_particion, os.O_RDWR, 0666)
+	defer read.Close()
+	read.Seek(int64(particion.PART_start), 0)
+	binary.Read(read, binary.LittleEndian, &sup)
+
+	read.Seek(int64(sup.S_inode_start), 0)
+	binary.Read(read, binary.LittleEndian, &inode)
+
 }

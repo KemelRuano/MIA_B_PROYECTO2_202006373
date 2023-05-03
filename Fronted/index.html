@@ -14,7 +14,7 @@
         <input type="text" class="form-control" style="border: 5px solid black; font: bold 110% monospace;" placeholder="Ingrese comando" id="input1">
     </div>
     <div class="container" >
-        <input type="file"  class="upload-box" id="archivo"/>
+        <input type="file"  class="upload-box" id="archivofile"/>
     </div>
 
     <button type="button" class="btn btn-warning" style="width: 160px; height: 50px;  position: absolute; top: 9%;  left:85%; border:5px solid black; font: bold 110% monospace;" onclick="getInpunt1()"> 
@@ -34,7 +34,7 @@
     </div>
     
    
-    <textarea name="mostrar" id="mostrarr" cols="30" rows="10" style="width: 600px; height: 100px; position: absolute; top:59%; left: 23%; background: #000000; color: white; font: bold 100% monospace;" disabled></textarea>
+    <textarea name="mostrar" id="mostrarr" cols="30" rows="10" style="width: 900px; height: 150px; position: absolute; top:59%; left: 10%; background: #000000; color: white; font: bold 100% monospace;" disabled></textarea>
 
 
 	
@@ -78,30 +78,71 @@
         function getInpunt2(){
             document.getElementById("input1").value = "";
         }
-        
-        function getInpunt1(){
-            var input = document.getElementById("input1");
-            var objecto = {
-                'comando': input.value
+        // verificar si es un archivo o un comando
+        var es_archivo = false;
+        const inputFiles = document.getElementById('archivofile');
+        inputFiles.addEventListener('change', (event) => {
+            const selectedFile = event.target.files[0];
+            if (selectedFile.name != null){
+                es_archivo = true;
             }
+            const reader = new FileReader();
+            reader.readAsText(selectedFile);
+            reader.onload = (event) => {
+                const file = event.target.result;
+                editor.setValue(file);
+            };      
+        });
+        function getInpunt1(){
+            if (es_archivo){
 
-            Proceso+= input.value + "\n";
-            editor.setValue(Proceso);
-            fetch('http://localhost:8080/Comands', {
+                const archivo = document.getElementById('archivofile').files[0];
+                const formData = new FormData();
+                formData.append('mi_archivo', archivo);
+                fetch('http://localhost:8080/File', {
                 method: 'POST',
-                body: JSON.stringify(objecto),
-                headers:{
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': '*',}})
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById("mostrarr").value = data.comando;
-                console.log('Success:', data);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert("Ocurrio un error, ver la consola");
-            });
+                body: formData 
+                })
+                .then(response => response.json())
+                .then(data => {
+                    agregar = false;
+                    let mensaje = data.comando;
+                    let abad = mensaje.replace(/;/g, '\n');
+                    document.getElementById("mostrarr").value = abad;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert("Ocurrio un error, ver la consola");
+                });
+         
+            }else{
+                var input = document.getElementById("input1");
+                var objecto = {
+                    'comando': input.value
+                }
+                
+                Proceso+= input.value + "\n";
+                editor.setValue(Proceso);
+                fetch('http://localhost:8080/Comands', {
+                    method: 'POST',
+                    body: JSON.stringify(objecto),
+                    headers:{
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*',}})
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("mostrarr").value = data.comando;
+                    if(data.comando == "pause"){
+                        alert("Se pauso la ejecucion .... presione continuar para continuar");
+
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert("Ocurrio un error, ver la consola");
+                });
+            }
+            
 
    
         }

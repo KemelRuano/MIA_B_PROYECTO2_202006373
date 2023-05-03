@@ -18,7 +18,7 @@ var adminug process.Admin_UG
 var Pathtemp string = ""
 var Estado bool = false
 
-func Sintactico(List_sintax []Token, comando string, w http.ResponseWriter, r *http.Request) {
+func Sintactico(List_sintax []Token, comando string, w http.ResponseWriter, r *http.Request, Tipo_arch string, Envio *string) {
 	var path string
 	var size string
 	var fit string
@@ -81,13 +81,19 @@ func Sintactico(List_sintax []Token, comando string, w http.ResponseWriter, r *h
 		}
 
 		if condicion1 && condicion2 {
+
 			valor := admindisk.Mkdisk(path, size, fit, unit)
-			respuesta := Estatus{
-				Parametro: valor,
+			if Tipo_arch == "comando" {
+				respuesta := Estatus{
+					Parametro: valor,
+				}
+				jsonBytes, _ := json.Marshal(respuesta)
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(jsonBytes)
+			} else {
+				*Envio += valor + `;`
 			}
-			jsonBytes, _ := json.Marshal(respuesta)
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(jsonBytes)
+
 		}
 
 	} else if strings.Contains(comando, "rmdisk") {
@@ -100,12 +106,16 @@ func Sintactico(List_sintax []Token, comando string, w http.ResponseWriter, r *h
 			Pathtemp = path
 			Estado = true
 			valor := admindisk.Rmdisk(path)
-			respuesta := Estatus{
-				Parametro: valor,
+			if Tipo_arch == "comando" {
+				respuesta := Estatus{
+					Parametro: valor,
+				}
+				jsonBytes, _ := json.Marshal(respuesta)
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(jsonBytes)
+			} else {
+				*Envio += valor + `;`
 			}
-			jsonBytes, _ := json.Marshal(respuesta)
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(jsonBytes)
 		}
 
 	} else if strings.Contains(comando, "fdisk") {
@@ -134,12 +144,16 @@ func Sintactico(List_sintax []Token, comando string, w http.ResponseWriter, r *h
 
 		if condicion1 && condicion2 && condicion3 {
 			valor := admindisk.Fdisk(size, path, name, types, unit, fit)
-			respuesta := Estatus{
-				Parametro: valor,
+			if Tipo_arch == "comando" {
+				respuesta := Estatus{
+					Parametro: valor,
+				}
+				jsonBytes, _ := json.Marshal(respuesta)
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(jsonBytes)
+			} else {
+				*Envio += valor + `;`
 			}
-			jsonBytes, _ := json.Marshal(respuesta)
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(jsonBytes)
 		}
 
 	} else if strings.Contains(comando, "mount") {
@@ -155,12 +169,16 @@ func Sintactico(List_sintax []Token, comando string, w http.ResponseWriter, r *h
 
 		if condicion1 && condicion2 {
 			valor := admindisk.MOUNT(path, name)
-			respuesta := Estatus{
-				Parametro: valor,
+			if Tipo_arch == "comando" {
+				respuesta := Estatus{
+					Parametro: valor,
+				}
+				jsonBytes, _ := json.Marshal(respuesta)
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(jsonBytes)
+			} else {
+				*Envio += valor + `;`
 			}
-			jsonBytes, _ := json.Marshal(respuesta)
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(jsonBytes)
 		}
 
 	} else if strings.Contains(comando, "mkfs") {
@@ -174,12 +192,16 @@ func Sintactico(List_sintax []Token, comando string, w http.ResponseWriter, r *h
 
 		if condicion1 {
 			valor := admindisk.MKFS(types, id)
-			respuesta := Estatus{
-				Parametro: valor,
+			if Tipo_arch == "comando" {
+				respuesta := Estatus{
+					Parametro: valor,
+				}
+				jsonBytes, _ := json.Marshal(respuesta)
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(jsonBytes)
+			} else {
+				*Envio += valor + `;`
 			}
-			jsonBytes, _ := json.Marshal(respuesta)
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(jsonBytes)
 		}
 
 	} else if strings.Contains(comando, "login") {
@@ -198,22 +220,30 @@ func Sintactico(List_sintax []Token, comando string, w http.ResponseWriter, r *h
 
 		if condicion1 && condicion2 && condicion3 {
 			valor := adminug.Login(user, password, id, admindisk)
+			if Tipo_arch == "comando" {
+				respuesta := Estatus{
+					Parametro: valor,
+				}
+				jsonBytes, _ := json.Marshal(respuesta)
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(jsonBytes)
+			} else {
+				*Envio += valor + `;`
+			}
+		}
+
+	} else if strings.Contains(comando, "logout") {
+		valor := adminug.Logout()
+		if Tipo_arch == "comando" {
 			respuesta := Estatus{
 				Parametro: valor,
 			}
 			jsonBytes, _ := json.Marshal(respuesta)
 			w.Header().Set("Content-Type", "application/json")
 			w.Write(jsonBytes)
+		} else {
+			*Envio += valor + `;`
 		}
-
-	} else if strings.Contains(comando, "logout") {
-		valor := adminug.Logout()
-		respuesta := Estatus{
-			Parametro: valor,
-		}
-		jsonBytes, _ := json.Marshal(respuesta)
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(jsonBytes)
 	} else if strings.Contains(comando, "mkgrp") {
 		condicion1 := false
 
@@ -223,12 +253,16 @@ func Sintactico(List_sintax []Token, comando string, w http.ResponseWriter, r *h
 
 		if condicion1 {
 			valor := adminug.MKGRP(name)
-			respuesta := Estatus{
-				Parametro: valor,
+			if Tipo_arch == "comando" {
+				respuesta := Estatus{
+					Parametro: valor,
+				}
+				jsonBytes, _ := json.Marshal(respuesta)
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(jsonBytes)
+			} else {
+				*Envio += valor + `;`
 			}
-			jsonBytes, _ := json.Marshal(respuesta)
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(jsonBytes)
 		}
 
 	} else if strings.Contains(comando, "rmgrp") {
@@ -240,12 +274,16 @@ func Sintactico(List_sintax []Token, comando string, w http.ResponseWriter, r *h
 
 		if condicion1 {
 			valor := adminug.RMGRP(name)
-			respuesta := Estatus{
-				Parametro: valor,
+			if Tipo_arch == "comando" {
+				respuesta := Estatus{
+					Parametro: valor,
+				}
+				jsonBytes, _ := json.Marshal(respuesta)
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(jsonBytes)
+			} else {
+				*Envio += valor + `;`
 			}
-			jsonBytes, _ := json.Marshal(respuesta)
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(jsonBytes)
 		}
 
 	} else if strings.Contains(comando, "mkusr") {
@@ -264,12 +302,16 @@ func Sintactico(List_sintax []Token, comando string, w http.ResponseWriter, r *h
 
 		if condicion1 && condicion2 && condicion3 {
 			valor := adminug.MKUSR(user, password, grupo)
-			respuesta := Estatus{
-				Parametro: valor,
+			if Tipo_arch == "comando" {
+				respuesta := Estatus{
+					Parametro: valor,
+				}
+				jsonBytes, _ := json.Marshal(respuesta)
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(jsonBytes)
+			} else {
+				*Envio += valor + `;`
 			}
-			jsonBytes, _ := json.Marshal(respuesta)
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(jsonBytes)
 		}
 
 	} else if strings.Contains(comando, "rmusr") {
@@ -279,12 +321,16 @@ func Sintactico(List_sintax []Token, comando string, w http.ResponseWriter, r *h
 		}
 		if condicion1 {
 			valor := adminug.RMUSER(user)
-			respuesta := Estatus{
-				Parametro: valor,
+			if Tipo_arch == "comando" {
+				respuesta := Estatus{
+					Parametro: valor,
+				}
+				jsonBytes, _ := json.Marshal(respuesta)
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(jsonBytes)
+			} else {
+				*Envio += valor + `;`
 			}
-			jsonBytes, _ := json.Marshal(respuesta)
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(jsonBytes)
 		}
 
 	} else if strings.Contains(comando, "mkfile") {
@@ -311,10 +357,16 @@ func Sintactico(List_sintax []Token, comando string, w http.ResponseWriter, r *h
 
 		if condicion1 {
 			fmt.Println("mkdir", rrr)
+			adminug.Mkdir(path, rrr)
 		}
 
 	} else if strings.Contains(comando, "pause") {
-		fmt.Println("PAUSE")
+		respuesta := Estatus{
+			Parametro: "pause",
+		}
+		jsonBytes, _ := json.Marshal(respuesta)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(jsonBytes)
 
 	} else if strings.Contains(comando, "rep") {
 		condicion1 := false
@@ -337,17 +389,22 @@ func Sintactico(List_sintax []Token, comando string, w http.ResponseWriter, r *h
 
 		if condicion1 && condicion2 && condicion3 {
 			valor := adminug.REP(name, path, id, ruta)
-			respuesta := Estatus{
-				Parametro: valor,
+			if Tipo_arch == "comando" {
+				respuesta := Estatus{
+					Parametro: valor,
+				}
+				jsonBytes, _ := json.Marshal(respuesta)
+				w.Header().Set("Content-Type", "application/json")
+				w.Write(jsonBytes)
+			} else {
+				*Envio += valor + `;`
 			}
-			jsonBytes, _ := json.Marshal(respuesta)
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(jsonBytes)
 		}
 
 	}
 
 	rrr = false
+
 }
 func ValidarAtributos(tipo string, atrib string, valor string, obli bool, comando string) bool {
 
@@ -397,4 +454,12 @@ func LD() string {
 }
 func LSB() string {
 	return adminug.SBRUTE()
+}
+
+func FILES() string {
+	return adminug.FILES2()
+}
+
+func LTREE() string {
+	return adminug.TREERUTE()
 }

@@ -649,7 +649,7 @@ func (d AdminDisk) MKFS(types string, id string) string {
 	}
 
 	ext2 := (particion.PART_size - int32(unsafe.Sizeof(Superblock{}))) / (4 + int32(unsafe.Sizeof(Inodes{})) + 3*int32(unsafe.Sizeof(Fileblock{})))
-
+	fmt.Println("numero de bloqies: ", ext2)
 	var superbloque Superblock
 	superbloque.S_mtime = time.Now().Unix()
 	superbloque.S_umtime = time.Now().Unix()
@@ -679,26 +679,26 @@ func (d AdminDisk) Format_ext2(superbloque Superblock, particion Partition, bloq
 		binary.Write(leer, binary.LittleEndian, &tmp)
 	}
 	leer.Seek(int64(superbloque.S_bm_block_start), 0)
-	for i := 0; i < (3 * bloques); i++ {
+	for e := 0; e < (3 * bloques); e++ {
 		binary.Write(leer, binary.LittleEndian, &tmp)
 	}
 
-	var inodo Inodes = NewInodes()
+	var inodos Inodes = NewInodes()
 	leer.Seek(int64(superbloque.S_inode_start), 0)
 	for i := 0; i < bloques; i++ {
-		binary.Write(leer, binary.LittleEndian, &inodo)
+		binary.Write(leer, binary.LittleEndian, &inodos)
 	}
-	var bloqueCarpetas Folderblock = NewFolder()
+	var bloqueCarpetass Folderblock
 	leer.Seek(int64(superbloque.S_block_start), 0)
 	for i := 0; i < (3 * bloques); i++ {
-		binary.Write(leer, binary.LittleEndian, &bloqueCarpetas)
+		binary.Write(leer, binary.LittleEndian, &bloqueCarpetass)
 	}
-	readsuper := NewSuperblock()
+	var readsuper Superblock
 	supblock, _ := os.OpenFile(paths, os.O_RDWR, 0666)
 	defer supblock.Close()
 	supblock.Seek(int64(particion.PART_start), 0)
 	binary.Read(supblock, binary.LittleEndian, &readsuper)
-
+	var inodo Inodes = NewInodes()
 	inodo.I_uid = 1
 	inodo.I_gid = 1
 	inodo.I_size = 0
@@ -706,10 +706,10 @@ func (d AdminDisk) Format_ext2(superbloque Superblock, particion Partition, bloq
 	inodo.I_ctime = superbloque.S_umtime
 	inodo.I_mtime = superbloque.S_umtime
 	inodo.I_block[0] = 0
-	inodo.I_type = '0'
+	inodo.I_type = 48
 	inodo.I_perm = 664
 
-	bloke := NewFolder()
+	var bloke Folderblock = NewFolder()
 	copy(bloke.B_content[0].B_name[:], []byte("."))
 	bloke.B_content[0].B_inodo = 0
 	copy(bloke.B_content[1].B_name[:], []byte(".."))
@@ -720,7 +720,7 @@ func (d AdminDisk) Format_ext2(superbloque Superblock, particion Partition, bloq
 	bloke.B_content[3].B_inodo = -1
 
 	data := "1,G,root\n1,U,root,root,123\n"
-	inodotemp := NewInodes()
+	var inodotemp Inodes = NewInodes()
 	inodotemp.I_uid = 1
 	inodotemp.I_gid = 1
 	inodotemp.I_size = int32(len(data)) + int32(unsafe.Sizeof(Folderblock{}))
@@ -728,7 +728,7 @@ func (d AdminDisk) Format_ext2(superbloque Superblock, particion Partition, bloq
 	inodotemp.I_ctime = superbloque.S_umtime
 	inodotemp.I_mtime = superbloque.S_umtime
 	inodotemp.I_block[0] = 1
-	inodotemp.I_type = '1'
+	inodotemp.I_type = 49
 	inodotemp.I_perm = 664
 
 	inodo.I_size = inodotemp.I_size + int32(unsafe.Sizeof(Folderblock{})) + int32(unsafe.Sizeof(Inodes{}))
@@ -736,9 +736,9 @@ func (d AdminDisk) Format_ext2(superbloque Superblock, particion Partition, bloq
 	var fileb Fileblock
 	copy(fileb.B_content[:], []byte(data))
 
-	bfiles, _ := os.OpenFile(paths, os.O_RDWR|os.O_CREATE, 0666)
+	bfiles, _ := os.OpenFile(paths, os.O_RDWR, 0666)
 	defer bfiles.Close()
-	caracter := '1'
+	var caracter byte = 49
 	bfiles.Seek(int64(superbloque.S_bm_inode_start), 0)
 	binary.Write(bfiles, binary.LittleEndian, &caracter)
 	binary.Write(bfiles, binary.LittleEndian, &caracter)
@@ -749,10 +749,12 @@ func (d AdminDisk) Format_ext2(superbloque Superblock, particion Partition, bloq
 
 	bfiles.Seek(int64(superbloque.S_inode_start), 0)
 	binary.Write(bfiles, binary.LittleEndian, &inodo)
+	bfiles.Seek(int64(superbloque.S_inode_start+int32(unsafe.Sizeof(Inodes{}))), 0)
 	binary.Write(bfiles, binary.LittleEndian, &inodotemp)
 
 	bfiles.Seek(int64(superbloque.S_block_start), 0)
 	binary.Write(bfiles, binary.LittleEndian, &bloke)
+	bfiles.Seek(int64(superbloque.S_block_start+int32(unsafe.Sizeof(Fileblock{}))), 0)
 	binary.Write(bfiles, binary.LittleEndian, &fileb)
 
 }

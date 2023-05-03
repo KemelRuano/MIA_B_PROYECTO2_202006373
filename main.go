@@ -2,6 +2,7 @@ package main
 
 import (
 	"MIA_B_PROYECTO2_202006373/Backend/analizadores"
+	"bufio"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -45,10 +46,11 @@ func main() {
 			w.Header().Set("Content-Type", "application/json")
 			w.Write(jsonBytes)
 		} else {
+			datos := ""
 			terminal := comando.Parametro
 			terminal += " "
 			Lista_Token := analizadores.Lexico(terminal)
-			analizadores.Sintactico(Lista_Token, terminal, w, r)
+			analizadores.Sintactico(Lista_Token, terminal, w, r, "comando", &datos)
 
 		}
 
@@ -96,6 +98,46 @@ func main() {
 
 	}).Methods("POST")
 
+	router.HandleFunc("/tree", func(w http.ResponseWriter, r *http.Request) {
+		pdfFile, err := os.Open(analizadores.LTREE())
+		if err != nil {
+			http.Error(w, "Archivo no encontrado", 404)
+			return
+		}
+		defer pdfFile.Close()
+		stat, err := pdfFile.Stat()
+		if err != nil {
+			http.Error(w, "Error al obtener información del archivo", 500)
+			return
+		}
+		fileSize := strconv.FormatInt(stat.Size(), 10)
+
+		w.Header().Set("Content-Type", "application/pdf")
+		w.Header().Set("Content-Disposition", "inline; filename=archivo.pdf")
+		w.Header().Set("Content-Length", fileSize)
+
+		io.Copy(w, pdfFile)
+
+	}).Methods("POST")
+
+	router.HandleFunc("/repfile", func(w http.ResponseWriter, r *http.Request) {
+		archivo, err := os.Open(analizadores.FILES())
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer archivo.Close()
+		scanner := bufio.NewScanner(archivo)
+		var contenido string
+		for scanner.Scan() {
+			contenido += scanner.Text() + "\n"
+		}
+		response := map[string]string{
+			"contenido": contenido,
+		}
+		json.NewEncoder(w).Encode(response)
+	}).Methods("POST")
+
 	router.HandleFunc("/superbloque", func(w http.ResponseWriter, r *http.Request) {
 		pdfFile, err := os.Open(analizadores.LSB())
 		if err != nil {
@@ -116,6 +158,43 @@ func main() {
 
 		io.Copy(w, pdfFile)
 
+	}).Methods("POST")
+
+	router.HandleFunc("/File", func(w http.ResponseWriter, r *http.Request) {
+		file, header, err := r.FormFile("mi_archivo")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		defer file.Close()
+		verificar := header.Filename
+		if verificar[len(verificar)-3:] != "eea" {
+			respuesta := Comand{
+				Parametro: "!!!!! ERROR EL ARCHIVO DEBE SER .eea !!!!!",
+			}
+			jsonBytes, _ := json.Marshal(respuesta)
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(jsonBytes)
+			return
+
+		}
+		var Texto string
+		scanner := bufio.NewScanner(file)
+		Extraido := ""
+		for scanner.Scan() {
+			line := scanner.Text()
+			line += " "
+			Texto += line + "\n"
+			Lista_Token := analizadores.Lexico(line)
+			analizadores.Sintactico(Lista_Token, line, w, r, "file", &Extraido)
+		}
+
+		respuesta := Comand{
+			Parametro: Extraido,
+		}
+		jsonBytes, _ := json.Marshal(respuesta)
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(jsonBytes)
 	}).Methods("POST")
 
 	http.ListenAndServe(":8080", router)
