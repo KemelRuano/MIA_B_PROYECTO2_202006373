@@ -461,11 +461,11 @@ func DISK(ruta string, paths string) {
 	fmt.Fprintf(archivo, "<TD ROWSPAN=\"3\" WIDTH=\"300\" HEIGHT=\"200\"> MBR </TD>\n")
 	contBlockLogic := 0
 	es_acoupado := 0
-	es_acoupadoLogic := 0
-	tot := 0
-	totLogic := 0
+	// es_acoupadoLogic := 0
+	//tot := 0
+	// totLogic := 0
 
-	List_part := admindisk.List_Partition(mbr)
+	var List_part []Partition = admindisk.List_Partition(mbr)
 	for i := 0; i < len(List_part); i++ {
 		if List_part[i].PART_status == '1' {
 			str := strings.TrimRight(string(List_part[i].PART_name[:]), "\x00")
@@ -473,7 +473,7 @@ func DISK(ruta string, paths string) {
 				var en_num float64 = float64(List_part[i].PART_size)
 				var es_entero float64 = (en_num / float64(mbr.MBR_size)) * 100
 				var es_porcentaje float64 = math.Round(es_entero*100.0) / 100.0
-				str1 := strconv.FormatFloat(es_porcentaje, 'f', 4, 64)
+				str1 := strconv.FormatFloat(es_porcentaje, 'f', 3, 64)
 				var porcentaje string = str1 + "% del disco"
 				fmt.Fprintf(archivo, "<TD ROWSPAN=\"3\" WIDTH=\"300\" HEIGHT=\"200\"> PARTICION PRIMARIA <BR/> %s <BR/> %s</TD>\n", str, porcentaje)
 			} else if List_part[i].PART_type == 'e' {
@@ -481,63 +481,61 @@ func DISK(ruta string, paths string) {
 				var numero float64 = float64(List_part[i].PART_size)
 				var es_entero float64 = (numero / float64(mbr.MBR_size)) * 100
 				var es_porcentaje float64 = math.Round(es_entero*100.0) / 100.0
-				str1 := strconv.FormatFloat(es_porcentaje, 'f', 4, 64)
+				str1 := strconv.FormatFloat(es_porcentaje, 'f', 3, 64)
 				var porcentaje string = str1 + "% del disco"
 				fmt.Fprintf(archivo, "<TD>\n")
 				fmt.Fprintf(archivo, "    <TABLE BORDER=\"2\"  CELLBORDER=\"5\" CELLSPACING=\"3\"  WIDTH=\"300\" HEIGHT=\"200\">\n")
 				var list_ext []EBR = admindisk.getlogics(List_part[i], paths)
+				var total_br int = 0
 				for j := 0; j < len(list_ext); j++ {
 					contBlockLogic += 2
-					es_acoupadoLogic = int(list_ext[j].EBR_start) + int(list_ext[j].EBR_size) + int(unsafe.Sizeof(EBR{}))
-					if !(es_acoupadoLogic == int(list_ext[j+1].EBR_start)) {
-						contBlockLogic += 1
-					}
-
+					total_br += int(list_ext[j].EBR_size)
+				}
+				var espacio_ebr = int(List_part[i].PART_size) - total_br
+				if espacio_ebr > 0 {
+					contBlockLogic += 2
 				}
 				fmt.Fprintf(archivo, "<TR>\n")
 				fmt.Fprintf(archivo, "           <TD COLSPAN=\"%s\" WIDTH=\"300\" HEIGHT=\"200\"> PARTICION EXTENDIDA <BR/> %s <BR/> %s </TD> \n", strconv.Itoa(contBlockLogic), str, porcentaje)
 				fmt.Fprintf(archivo, "</TR>\n")
 				fmt.Fprintf(archivo, "<TR>\n")
-				es_acoupado = 0
 				for j := 0; j < len(list_ext); j++ {
 					if list_ext[j].EBR_status == '1' {
 						fmt.Fprintf(archivo, "              <TD WIDTH=\"300\" HEIGHT=\"200\"> EBR </TD>\n")
-						str1 = string(list_ext[j].EBR_name[:])
+						str1 = strings.TrimRight(string(list_ext[j].EBR_name[:]), "\x00")
 						var numero float64 = float64(list_ext[j].EBR_size)
-						var es_entero float64 = (numero / float64(List_part[j].PART_size)) * 100
+						var es_entero float64 = (numero / float64(List_part[i].PART_size)) * 100
 						var es_porcentaje float64 = math.Round(es_entero*100.0) / 100.0
-						ss := strconv.FormatFloat(es_porcentaje, 'f', 4, 64)
+						ss := strconv.FormatFloat(es_porcentaje, 'f', 2, 64)
 						var porcentaje string = ss + "% de la particion extendida"
 						fmt.Fprintf(archivo, "                <TD WIDTH=\"300\" HEIGHT=\"200\"> PARTICION LOGICA <BR/> %s <BR/> %s </TD>\n", str1, porcentaje)
 					}
-					es_acoupadoLogic = int(list_ext[j].EBR_start) + int(list_ext[j].EBR_size) + int(unsafe.Sizeof(EBR{}))
-					totLogic += int(list_ext[j].EBR_size)
-					if !(es_acoupadoLogic == int(list_ext[j+1].EBR_start)) {
-						var numero float64 = float64(List_part[i].PART_size) - float64(totLogic)
-						var es_entero float64 = (numero / float64(List_part[i].PART_size)) * 100
-						var es_porcentaje float64 = math.Round(es_entero*100.0) / 100.0
-						ss := strconv.FormatFloat(es_porcentaje, 'f', 4, 64)
-						var porcentaje string = ss + "% de la particion extendida"
-						fmt.Fprintf(archivo, "                   <TD WIDTH=\"300\" HEIGHT=\"200\">  LIBRE <BR/> %s </TD>\n", porcentaje)
-					}
 				}
+				var numero2 float64 = float64(espacio_ebr)
+				var es_entero2 float64 = (numero2 / float64(List_part[i].PART_size)) * 100
+				var es_porcentaje2 float64 = math.Round(es_entero2*100.0) / 100.0
+				ss := strconv.FormatFloat(es_porcentaje2, 'f', 4, 64)
+				var porcentaje2 string = ss + "% de la particion extendida"
+				fmt.Fprintf(archivo, "                   <TD WIDTH=\"300\" HEIGHT=\"200\">  LIBRE <BR/> %s </TD>\n", porcentaje2)
+
 				fmt.Fprintf(archivo, "		</TR>\n")
 				fmt.Fprintf(archivo, "	</TABLE>\n")
 				fmt.Fprintf(archivo, "</TD>\n")
 			}
-			es_acoupado = int(List_part[i].PART_start) + int(List_part[i].PART_size)
-			tot += int(List_part[i].PART_size)
-			if !(es_acoupado == int(List_part[i+1].PART_start)) {
 
-				var numero float64 = float64(mbr.MBR_size) - float64(tot)
-				var es_entero float64 = (numero / float64(mbr.MBR_size)) * 100
-				var es_porcentaje float64 = math.Round(es_entero*100.0) / 100.0
-				str1 := strconv.FormatFloat(es_porcentaje, 'f', 4, 64)
-				var porcentaje string = str1 + "% del disco"
-				fmt.Fprintf(archivo, "<TD ROWSPAN=\"3\" WIDTH=\"300\" HEIGHT=\"200\"> LIBRE <BR/> %s </TD>\n", porcentaje)
-			}
-
+			es_acoupado += int(List_part[i].PART_size)
 		}
+	}
+	var es_vacio int = 0
+	es_vacio = 136 + es_acoupado
+	if es_vacio < int(mbr.MBR_size) {
+		var numero float64 = float64(mbr.MBR_size) - float64(es_vacio)
+		var es_entero float64 = (numero / float64(mbr.MBR_size)) * 100
+		var es_porcentaje float64 = math.Round(es_entero*100.0) / 100.0
+		str1 := strconv.FormatFloat(es_porcentaje, 'f', 3, 64)
+		var porcentaje string = str1 + "% del disco"
+		fmt.Fprintf(archivo, "<TD ROWSPAN=\"3\" WIDTH=\"300\" HEIGHT=\"200\"> LIBRE <BR/> %s </TD>\n", porcentaje)
+
 	}
 	fmt.Fprintf(archivo, "</TR>\n")
 	fmt.Fprintf(archivo, "</TABLE>>];\n")
