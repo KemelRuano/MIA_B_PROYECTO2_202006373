@@ -814,6 +814,9 @@ var nombreDisko string = ""
 
 func (a Admin_UG) ViewsReporte(user string, pwd string, ids string) string {
 
+	if user == "" || pwd == "" || ids == "" {
+		return "FALTAN DATOS"
+	}
 	if Logeado.User != user && Logeado.Password == pwd && Logeado.Id == ids {
 		return "NO EXISTE EL USUARIO"
 	} else if Logeado.User == user && Logeado.Password != pwd && Logeado.Id == ids {
@@ -821,7 +824,6 @@ func (a Admin_UG) ViewsReporte(user string, pwd string, ids string) string {
 	} else if Logeado.User == user && Logeado.Password == pwd && Logeado.Id != ids {
 		return "ID INCORRECTO"
 	}
-
 	var paths string
 	admindisk.EncontrarParticion(ids, &paths)
 	fileName := path.Base(paths)

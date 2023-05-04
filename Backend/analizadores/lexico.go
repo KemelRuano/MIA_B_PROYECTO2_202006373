@@ -42,8 +42,9 @@ func Lexico(comando string) []Token {
 				index++
 			} else if caracter == 10 {
 				index++
+			} else if caracter == 35 {
+				estado = 6
 			} else {
-				fmt.Println("error: ", caracter)
 				index++
 				estado = 0
 				lexema = ""
@@ -140,6 +141,19 @@ func Lexico(comando string) []Token {
 				lexema = ""
 				estado = 0
 			}
+		} else if estado == 6 {
+			if caracter != '\n' {
+				index += 1
+				lexema += string(caracter)
+				fmt.Println(string(caracter))
+			}
+			if caracter == '\n' {
+				fmt.Println("nuevo")
+				index += 1
+				estado = 0
+				lexema = ""
+			}
+
 		}
 
 	}

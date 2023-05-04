@@ -401,6 +401,18 @@ func Sintactico(List_sintax []Token, comando string, w http.ResponseWriter, r *h
 			}
 		}
 
+	} else if strings.Contains(comando, "#") {
+		if Tipo_arch == "comando" {
+			respuesta := Estatus{
+				Parametro: "comentario",
+			}
+			jsonBytes, _ := json.Marshal(respuesta)
+			w.Header().Set("Content-Type", "application/json")
+			w.Write(jsonBytes)
+		} else {
+			*Envio += "comentario;"
+		}
+
 	}
 
 	rrr = false

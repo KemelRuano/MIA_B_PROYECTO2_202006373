@@ -20,10 +20,10 @@
    
     </div>
     <script>
-        
+        var rute = "localhost:8080"
         function viewDISK(){
             var diskpath = ""
-            fetch('http://localhost:8080/disk', {
+            fetch(`http://${rute}/disk`, {
                 method: 'POST',
                 headers:{
                 'Content-Type': 'application/json',
@@ -54,7 +54,7 @@
 
         function viewSUPER(){
             var diskpath = ""
-            fetch('http://localhost:8080/superbloque', {
+            fetch(`http://${rute}/superbloque`, {
                 method: 'POST',
                 headers:{
                 'Content-Type': 'application/json',
@@ -83,7 +83,7 @@
 
         function viewTREE(){
             var diskpath = ""
-            fetch('http://localhost:8080/tree', {
+            fetch(`http://${rute}/tree`, {
                 method: 'POST',
                 headers:{
                 'Content-Type': 'application/json',
@@ -112,7 +112,7 @@
 
 
         function viewFILE(){
-            fetch('http://localhost:8080/repfile', {
+            fetch(`http://${rute}/repfile`, {
                 method: 'POST',
                 headers:{
                 'Content-Type': 'application/json',

@@ -48,7 +48,7 @@ func main() {
 		} else {
 			datos := ""
 			terminal := comando.Parametro
-			terminal += " "
+			terminal += " " + "\n"
 			Lista_Token := analizadores.Lexico(terminal)
 			analizadores.Sintactico(Lista_Token, terminal, w, r, "comando", &datos)
 
@@ -178,13 +178,13 @@ func main() {
 			return
 
 		}
-		var Texto string
+
 		scanner := bufio.NewScanner(file)
 		Extraido := ""
 		for scanner.Scan() {
 			line := scanner.Text()
 			line += " "
-			Texto += line + "\n"
+			line += "\n"
 			Lista_Token := analizadores.Lexico(line)
 			analizadores.Sintactico(Lista_Token, line, w, r, "file", &Extraido)
 		}
