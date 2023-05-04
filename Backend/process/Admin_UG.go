@@ -30,6 +30,23 @@ var estado bool = false
 
 var admindisk AdminDisk
 
+type ExtraerPath struct {
+	Namedisk string
+	Listrep  []Report
+}
+type Report struct {
+	Disk string
+	Tree string
+	Sb   string
+	File string
+}
+
+func (m *ExtraerPath) AddId(disk string, tree string, sb string, file string) {
+	m.Listrep = append(m.Listrep, Report{Disk: disk, Tree: tree, Sb: sb, File: file})
+}
+
+var List_reporte []ExtraerPath
+
 func (a Admin_UG) Login(user string, password string, id string, admin AdminDisk) string {
 	admindisk = admin
 	Superblock := NewSuperblock()
@@ -793,6 +810,8 @@ func Inodosiguiente(superbloque Superblock, paths string) int {
 	return -1
 }
 
+var nombreDisko string = ""
+
 func (a Admin_UG) ViewsReporte(user string, pwd string, ids string) string {
 
 	if Logeado.User != user && Logeado.Password == pwd && Logeado.Id == ids {
@@ -803,17 +822,57 @@ func (a Admin_UG) ViewsReporte(user string, pwd string, ids string) string {
 		return "ID INCORRECTO"
 	}
 
+	var paths string
+	admindisk.EncontrarParticion(ids, &paths)
+	fileName := path.Base(paths)
+	nombreDisko = fileName
+	estadoac := false
+	for i := 0; i < len(List_reporte); i++ {
+		if List_reporte[i].Namedisk == fileName {
+			estadoac = true
+			break
+		} else {
+			continue
+		}
+	}
+	if !estadoac {
+		List_reporte = append(List_reporte, ExtraerPath{})
+		List_reporte[len(List_reporte)-1].Namedisk = fileName
+		List_reporte[len(List_reporte)-1].AddId(RUTAIMAGEN, RUTATREE, RUTASB, RUTAFILES)
+	}
+
 	return "BIENVENIDO USUARIO"
 }
 
 func (a Admin_UG) DRUTE() string {
+	for i := 0; i < len(List_reporte); i++ {
+		if List_reporte[i].Namedisk == nombreDisko {
+			for j := 0; j < len(List_reporte[i].Listrep); j++ {
+				RUTAIMAGEN = List_reporte[i].Listrep[j].Disk
+			}
+		}
+	}
 	return RUTAIMAGEN
 }
 
 func (a Admin_UG) SBRUTE() string {
+	for i := 0; i < len(List_reporte); i++ {
+		if List_reporte[i].Namedisk == nombreDisko {
+			for j := 0; j < len(List_reporte[i].Listrep); j++ {
+				RUTASB = List_reporte[i].Listrep[j].Sb
+			}
+		}
+	}
 	return RUTASB
 }
 func (a Admin_UG) FILES2() string {
+	for i := 0; i < len(List_reporte); i++ {
+		if List_reporte[i].Namedisk == nombreDisko {
+			for j := 0; j < len(List_reporte[i].Listrep); j++ {
+				RUTAFILES = List_reporte[i].Listrep[j].File
+			}
+		}
+	}
 	return RUTAFILES
 }
 
@@ -840,6 +899,13 @@ func FILE(paths string, pathdisco string, particion Partition, rute string) {
 }
 
 func (a Admin_UG) TREERUTE() string {
+	for i := 0; i < len(List_reporte); i++ {
+		if List_reporte[i].Namedisk == nombreDisko {
+			for j := 0; j < len(List_reporte[i].Listrep); j++ {
+				RUTATREE = List_reporte[i].Listrep[j].Tree
+			}
+		}
+	}
 	return RUTATREE
 }
 
